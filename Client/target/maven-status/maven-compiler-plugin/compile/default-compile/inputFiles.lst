@@ -1,0 +1,11 @@
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/dto/ReservationResponse.java
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/rest/AgenceRestClient.java
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/gui/ClientGUI.java
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/ClientApplication.java
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/test/TestConnexionDirecte.java
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/rest/MultiAgenceRestClient.java
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/dto/ReservationRequest.java
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/dto/RechercheRequest.java
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/cli/ClientCLIRest.java
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/dto/ChambreDTO.java
+/home/corentinfay/Bureau/RestRepo/Client/src/main/java/org/tp1/client/config/RestClientConfig.java

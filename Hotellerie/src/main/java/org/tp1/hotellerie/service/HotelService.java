@@ -1,0 +1,365 @@
+package org.tp1.hotellerie.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.tp1.hotellerie.model.*;
+import org.tp1.hotellerie.repository.*;
+
+import javax.annotation.PostConstruct;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * Service pour gérer l'hôtel avec persistance en base de données H2
+ */
+@Service
+@Transactional
+public class HotelService {
+
+    @Autowired
+    private HotelRepository hotelRepository;
+
+    @Autowired
+    private ChambreRepository chambreRepository;
+
+    @Autowired
+    private ReservationRepository reservationRepository;
+
+    @Autowired
+    private ClientRepository clientRepository;
+
+    private Long hotelId; // ID de l'hôtel en base (pas d'objet en mémoire)
+
+    @Value("${hotel.nom:Grand Hotel Paris}")
+    private String hotelNom;
+
+    @Value("${hotel.adresse:10 Rue de la Paix, Paris}")
+    private String hotelAdresse;
+
+    @Value("${hotel.categorie:CAT5}")
+    private String hotelCategorie;
+
+    @Value("${hotel.ville:Paris}")
+    private String hotelVille;
+
+    @Value("${server.port:8082}")
+    private int serverPort;
+
+    @PostConstruct
+    public void init() {
+        // Convertir la catégorie String en Type enum
+        Type type = Type.valueOf(hotelCategorie);
+
+        System.out.println("═══════════════════════════════════════════");
+        System.out.println("  Initialisation Hôtel: " + hotelVille);
+        System.out.println("  Nom: " + hotelNom);
+        System.out.println("  Adresse: " + hotelAdresse);
+        System.out.println("  Catégorie: " + type);
+
+        // Vérifier si l'hôtel existe déjà dans la base
+        Optional<Hotel> existingHotel = hotelRepository.findByNomAndAdresse(hotelNom, hotelAdresse);
+
+        if (existingHotel.isPresent()) {
+            Hotel hotel = existingHotel.get();
+            this.hotelId = hotel.getId();
+
+            // Compter depuis la BDD
+            long nbChambres = chambreRepository.countByHotelId(hotelId);
+            long nbReservations = reservationRepository.countByHotelId(hotelId);
+
+            System.out.println("  ✓ Hôtel chargé depuis la base de données");
+            System.out.println("  ID hôtel: " + hotelId);
+            System.out.println("  Chambres en base: " + nbChambres);
+            System.out.println("  Réservations en base: " + nbReservations);
+        } else {
+            // Créer un nouvel hôtel
+            Hotel newHotel = new Hotel(hotelNom, hotelAdresse, type);
+            newHotel = hotelRepository.save(newHotel);
+            this.hotelId = newHotel.getId();
+            System.out.println("  ✓ Nouvel hôtel créé dans la base");
+            System.out.println("  ID hôtel: " + hotelId);
+
+            // Déterminer l'image selon la ville
+            String imageFileName = getImageFileName();
+            String imageUrl = "http://localhost:" + serverPort + "/images/" + imageFileName;
+
+            // Ajouter des chambres différentes selon la ville
+            System.out.println("  Création des chambres...");
+            if ("Paris".equals(hotelVille)) {
+                ajouterChambre(1, "Chambre Simple", 80.0f, 1, imageUrl);
+                ajouterChambre(2, "Chambre Double", 120.0f, 2, imageUrl);
+                ajouterChambre(3, "Suite Deluxe", 200.0f, 3, imageUrl);
+                ajouterChambre(4, "Chambre Familiale", 150.0f, 4, imageUrl);
+                ajouterChambre(5, "Chambre Economy", 60.0f, 1, imageUrl);
+            } else if ("Lyon".equals(hotelVille)) {
+                ajouterChambre(11, "Chambre Standard", 70.0f, 1, imageUrl);
+                ajouterChambre(12, "Chambre Confort", 100.0f, 2, imageUrl);
+                ajouterChambre(13, "Suite Junior", 150.0f, 2, imageUrl);
+                ajouterChambre(14, "Chambre Triple", 130.0f, 3, imageUrl);
+                ajouterChambre(15, "Chambre Budget", 50.0f, 1, imageUrl);
+            } else if ("Montpellier".equals(hotelVille)) {
+                ajouterChambre(21, "Chambre Eco", 45.0f, 1, imageUrl);
+                ajouterChambre(22, "Chambre Double Confort", 85.0f, 2, imageUrl);
+                ajouterChambre(23, "Suite Vue Mer", 140.0f, 2, imageUrl);
+                ajouterChambre(24, "Chambre Quad", 110.0f, 4, imageUrl);
+                ajouterChambre(25, "Studio", 65.0f, 1, imageUrl);
+            }
+
+            long nbChambresCreees = chambreRepository.countByHotelId(hotelId);
+            System.out.println("  Chambres créées en base: " + nbChambresCreees);
+            System.out.println("  URL image: " + imageUrl);
+        }
+
+        System.out.println("═══════════════════════════════════════════");
+    }
+
+    /**
+     * Ajoute une chambre en base de données (pas en mémoire)
+     */
+    private void ajouterChambre(int numeroChambre, String nom, float prix, int nbrDeLit, String imageUrl) {
+        // Vérifier si la chambre existe déjà (par numéro et hôtel)
+        Optional<Chambre> existing = chambreRepository.findByNumeroChambreAndHotelId(numeroChambre, hotelId);
+
+        if (existing.isEmpty()) {
+            // Récupérer l'hôtel depuis la BDD
+            Hotel hotel = hotelRepository.findById(hotelId).orElseThrow();
+
+            Chambre chambre = new Chambre(numeroChambre, nom, prix, nbrDeLit, imageUrl);
+            chambre.setHotel(hotel);
+            chambreRepository.save(chambre);
+        }
+    }
+
+    private String getImageFileName() {
+        switch (hotelVille) {
+            case "Paris":
+                return "Hotelle1.png";
+            case "Lyon":
+                return "Hotelle2.png";
+            case "Montpellier":
+                return "Hotelle3.png";
+            default:
+                return "Hotelle1.png";
+        }
+    }
+
+    /**
+     * Récupère l'hôtel DEPUIS LA BASE DE DONNÉES (pas en mémoire)
+     */
+    public Hotel getHotel() {
+        return hotelRepository.findById(hotelId).orElseThrow(
+            () -> new RuntimeException("Hôtel non trouvé en base")
+        );
+    }
+
+    /**
+     * Recherche des chambres disponibles selon des critères - TOUT EN BDD
+     */
+    @Transactional(readOnly = true)
+    public List<Chambre> rechercherChambres(String adresse, String dateArrive, String dateDepart,
+                                            Float prixMin, Float prixMax, Integer nbrEtoile, Integer nbrLits) {
+
+        // Parsing des dates
+        Date arrive = parseDate(dateArrive);
+        Date depart = parseDate(dateDepart);
+
+        if (arrive == null || depart == null || !arrive.before(depart)) {
+            return new ArrayList<>();
+        }
+
+        // Récupérer l'hôtel depuis la BDD
+        Hotel hotel = getHotel();
+
+        // Vérifier si l'adresse correspond
+        if (adresse != null && !adresse.trim().isEmpty()) {
+            if (hotel.getAdresse() == null || !hotel.getAdresse().toLowerCase().contains(adresse.toLowerCase())) {
+                return new ArrayList<>();
+            }
+        }
+
+        // Vérifier le nombre d'étoiles
+        if (nbrEtoile != null && nbrEtoile >= 1 && nbrEtoile <= 6) {
+            if (hotel.getType() == null || hotel.getType().ordinal() + 1 != nbrEtoile) {
+                return new ArrayList<>();
+            }
+        }
+
+        // Récupérer TOUTES les chambres de cet hôtel depuis la BDD
+        List<Chambre> toutesLesChambres = chambreRepository.findByHotelId(hotelId);
+        List<Chambre> chambresDisponibles = new ArrayList<>();
+
+        // Filtrer par critères et disponibilité
+        for (Chambre chambre : toutesLesChambres) {
+            if (chambre == null) continue;
+
+            // Vérifier le prix
+            if (prixMin != null && prixMin > 0 && chambre.getPrix() < prixMin) continue;
+            if (prixMax != null && prixMax > 0 && chambre.getPrix() > prixMax) continue;
+
+            // Vérifier le nombre de lits
+            if (nbrLits != null && nbrLits > 0 && chambre.getNbrDeLit() < nbrLits) continue;
+
+            // Vérifier la disponibilité
+            List<Reservation> reservations = reservationRepository.findOverlappingReservations(
+                chambre.getId(), arrive, depart
+            );
+
+            if (reservations.isEmpty()) {
+                chambresDisponibles.add(chambre);
+            }
+        }
+
+        return chambresDisponibles;
+    }
+
+    /**
+     * Effectue une réservation - TOUT EN BDD
+     */
+    @Transactional
+    public ReservationResult effectuerReservation(Client client, long chambreId, String dateArrive, String dateDepart) {
+        // Vérifier que le client est valide
+        if (client == null || client.getNom() == null || client.getNom().isEmpty()) {
+            return new ReservationResult(0, false, "Client invalide");
+        }
+
+        // Trouver ou créer le client dans la base
+        Client clientDB = clientRepository.findByNumeroCarteBleue(client.getNumeroCarteBleue())
+            .orElse(null);
+
+        if (clientDB == null) {
+            clientDB = clientRepository.save(client);
+        }
+
+        // Trouver la chambre par son ID DEPUIS LA BDD
+        Optional<Chambre> chambreOpt = chambreRepository.findById(chambreId);
+
+        if (chambreOpt.isEmpty()) {
+            return new ReservationResult(0, false, "Chambre non trouvée");
+        }
+
+        Chambre chambre = chambreOpt.get();
+
+        // Vérifier les dates
+        Date arrive = parseDate(dateArrive);
+        Date depart = parseDate(dateDepart);
+
+        if (arrive == null || depart == null || !arrive.before(depart)) {
+            return new ReservationResult(0, false, "Dates invalides");
+        }
+
+        // Vérifier la disponibilité DEPUIS LA BDD
+        List<Reservation> reservationsExistantes = reservationRepository.findOverlappingReservations(
+            chambre.getId(), arrive, depart
+        );
+
+        if (!reservationsExistantes.isEmpty()) {
+            return new ReservationResult(0, false, "Chambre déjà réservée pour ces dates");
+        }
+
+        // Récupérer l'hôtel depuis la BDD
+        Hotel hotel = getHotel();
+
+        // Générer un numéro de réservation unique depuis la BDD
+        int numeroReservation = (int) (reservationRepository.countByHotelId(hotelId) + 1);
+
+        // Créer et SAUVEGARDER la réservation EN BDD
+        Reservation reservation = new Reservation(numeroReservation, clientDB, chambre, arrive, depart);
+        reservation.setHotel(hotel);
+        reservation = reservationRepository.save(reservation);
+
+        return new ReservationResult(numeroReservation, true, "Réservation effectuée avec succès");
+    }
+
+    /**
+     * Obtenir toutes les réservations - DEPUIS LA BDD
+     */
+    @Transactional(readOnly = true)
+    public List<Reservation> getReservations() {
+        return reservationRepository.findByHotelId(hotelId);
+    }
+
+    /**
+     * Obtenir la liste des chambres qui ont au moins une réservation - DEPUIS LA BDD
+     */
+    @Transactional(readOnly = true)
+    public List<org.tp1.hotellerie.dto.ChambreDTO> getChambresReservees() {
+        // Récupérer toutes les réservations de cet hôtel depuis la BDD
+        List<Reservation> reservations = reservationRepository.findByHotelId(hotelId);
+
+        // Récupérer l'hôtel pour le type
+        Hotel hotel = getHotel();
+
+        // Extraire les IDs de chambres réservées (distinct)
+        List<Long> chambresReserveesIds = reservations.stream()
+            .map(r -> r.getChambre().getId())
+            .distinct()
+            .toList();
+
+        // Récupérer les chambres depuis la BDD et convertir en DTO
+        List<org.tp1.hotellerie.dto.ChambreDTO> chambresReservees = new ArrayList<>();
+        for (Long chambreId : chambresReserveesIds) {
+            Optional<Chambre> chambreOpt = chambreRepository.findById(chambreId);
+            if (chambreOpt.isPresent()) {
+                Chambre chambre = chambreOpt.get();
+                org.tp1.hotellerie.dto.ChambreDTO dto = new org.tp1.hotellerie.dto.ChambreDTO(
+                    chambre.getId(),
+                    chambre.getNom(),
+                    chambre.getPrix(),
+                    chambre.getNbrDeLit(),
+                    hotel.getType().ordinal() + 1,
+                    false,  // Non disponible car réservée
+                    chambre.getImageUrl()
+                );
+                chambresReservees.add(dto);
+            }
+        }
+
+        return chambresReservees;
+    }
+
+    // Méthodes utilitaires
+    private Date parseDate(String s) {
+        if (s == null || s.trim().isEmpty()) return null;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        sdf.setLenient(false);
+        try {
+            return sdf.parse(s);
+        } catch (ParseException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Classe pour retourner le résultat d'une réservation
+     */
+    public static class ReservationResult {
+        private final int reservationId;
+        private final boolean success;
+        private final String message;
+
+        public ReservationResult(int reservationId, boolean success, String message) {
+            this.reservationId = reservationId;
+            this.success = success;
+            this.message = message;
+        }
+
+        public int getReservationId() {
+            return reservationId;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+    }
+}
