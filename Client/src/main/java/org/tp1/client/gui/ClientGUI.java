@@ -3,8 +3,10 @@ package org.tp1.client.gui;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tp1.client.dto.ChambreDTO;
+import org.tp1.client.dto.RechercheRequest;
+import org.tp1.client.dto.ReservationRequest;
 import org.tp1.client.dto.ReservationResponse;
-import org.tp1.client.rest.MultiAgenceRestClient;
+import org.tp1.client.grpc.MultiAgenceGrpcClient;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -21,7 +23,7 @@ import java.util.List;
 public class ClientGUI {
 
     @Autowired
-    private MultiAgenceRestClient agenceRestClient;
+    private MultiAgenceGrpcClient agenceRestClient;
 
     private List<ChambreDTO> dernieresChambres = new ArrayList<>();
 
@@ -333,11 +335,15 @@ public class ClientGUI {
         new SwingWorker<List<ChambreDTO>, Void>() {
             @Override
             protected List<ChambreDTO> doInBackground() throws Exception {
-                log("   Appel du client REST...");
-                List<ChambreDTO> result = agenceRestClient.rechercherChambres(
+                log("   Appel du client gRPC...");
+                RechercheRequest request = new RechercheRequest(
                     adresse, dateArrivee, dateDepart,
-                    prixMin, prixMax, nbrEtoiles, nbrLits
+                    prixMin != null ? prixMin : 0.0f,
+                    prixMax != null ? prixMax : 0.0f,
+                    nbrEtoiles != null ? nbrEtoiles : 0,
+                    nbrLits != null ? nbrLits : 0
                 );
+                List<ChambreDTO> result = agenceRestClient.rechercherChambres(request);
                 log("   Réponse reçue: " + result.size() + " chambre(s)");
                 return result;
             }
@@ -603,13 +609,13 @@ public class ClientGUI {
         new SwingWorker<ReservationResponse, Void>() {
             @Override
             protected ReservationResponse doInBackground() throws Exception {
-                return agenceRestClient.effectuerReservation(
+                ReservationRequest request = new ReservationRequest(
                     nom, prenom, carte,
                     chambre.getId(),
                     chambre.getHotelAdresse(),
-                    dateArr, dateDep,
-                    chambre.getAgenceNom()
+                    dateArr, dateDep
                 );
+                return agenceRestClient.effectuerReservation(request);
             }
 
             @Override

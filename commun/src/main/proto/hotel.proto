@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.tp1.commun.grpc.hotel";
+option java_outer_classname = "HotelProto";
+
+package hotel;
+
+// Service gRPC pour l'hôtel
+service HotelService {
+  // Obtenir les informations de l'hôtel
+  rpc GetHotelInfo(HotelInfoRequest) returns (HotelInfoResponse);
+
+  // Rechercher des chambres disponibles
+  rpc RechercherChambres(RechercheRequest) returns (RechercheResponse);
+
+  // Effectuer une réservation
+  rpc EffectuerReservation(ReservationRequest) returns (ReservationResponse);
+
+  // Obtenir les chambres réservées
+  rpc GetChambresReservees(ChambresReserveesRequest) returns (ChambresReserveesResponse);
+}
+
+// Messages pour GetHotelInfo
+message HotelInfoRequest {
+  // Vide - pas de paramètres nécessaires
+}
+
+message HotelInfoResponse {
+  string nom = 1;
+  string adresse = 2;
+  string ville = 3;
+  string telephone = 4;
+}
+
+// Messages pour RechercherChambres
+message RechercheRequest {
+  string adresse = 1;
+  string dateArrive = 2;
+  string dateDepart = 3;
+
+  // Champs optionnels (0 = non spécifié)
+  float prixMin = 4;
+  float prixMax = 5;
+  int32 nbrEtoile = 6;
+  int32 nbrLits = 7;
+}
+
+message RechercheResponse {
+  repeated ChambreMessage chambres = 1;
+}
+
+message ChambreMessage {
+  int64 id = 1;
+  string nom = 2;
+  float prix = 3;
+  int32 nbrDeLit = 4;
+  int32 nbrEtoile = 5;
+  bool disponible = 6;
+  string imageUrl = 7;
+  string hotelNom = 8;       // Nom de l'hôtel
+  string hotelAdresse = 9;    // Adresse de l'hôtel
+}
+
+// Messages pour EffectuerReservation
+message ReservationRequest {
+  int64 chambreId = 1;
+  string dateArrive = 2;
+  string dateDepart = 3;
+  string nomClient = 4;
+  string prenomClient = 5;
+  string numeroCarteBancaire = 6;
+}
+
+message ReservationResponse {
+  bool success = 1;
+  string message = 2;
+  int64 reservationId = 3;
+}
+
+// Messages pour GetChambresReservees
+message ChambresReserveesRequest {
+  // Vide - retourne toutes les chambres réservées de l'hôtel
+}
+
+message ChambresReserveesResponse {
+  repeated ChambreMessage chambres = 1;
+}

@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.tp1.commun.grpc.agence";
+option java_outer_classname = "AgenceProto";
+
+package agence;
+
+// Import des messages de l'hôtel
+import "hotel.proto";
+
+// Service gRPC pour l'agence
+service AgenceService {
+  // Vérifier que l'agence est opérationnelle
+  rpc Ping(PingRequest) returns (PingResponse);
+
+  // Rechercher des chambres dans tous les hôtels partenaires
+  rpc RechercherChambres(hotel.RechercheRequest) returns (hotel.RechercheResponse);
+
+  // Effectuer une réservation dans un hôtel spécifique
+  rpc EffectuerReservation(AgenceReservationRequest) returns (hotel.ReservationResponse);
+
+  // Obtenir toutes les chambres réservées de tous les hôtels
+  rpc GetChambresReservees(ChambresReserveesRequest) returns (ChambresReserveesParHotelResponse);
+}
+
+// Messages pour Ping
+message PingRequest {
+  // Vide
+}
+
+message PingResponse {
+  string message = 1;
+  string status = 2;
+  int64 timestamp = 3;
+}
+
+// Message pour EffectuerReservation (avec l'adresse de l'hôtel cible)
+message AgenceReservationRequest {
+  string hotelAdresse = 1;
+  int64 chambreId = 2;
+  string dateArrive = 3;
+  string dateDepart = 4;
+  string nomClient = 5;
+  string prenomClient = 6;
+  string numeroCarteBancaire = 7;
+}
+
+// Messages pour GetChambresReservees
+message ChambresReserveesRequest {
+  // Vide - retourne les chambres réservées de tous les hôtels
+}
+
+message HotelChambresReservees {
+  string hotelNom = 1;
+  repeated hotel.ChambreMessage chambres = 2;
+}
+
+message ChambresReserveesParHotelResponse {
+  repeated HotelChambresReservees hotels = 1;
+}
