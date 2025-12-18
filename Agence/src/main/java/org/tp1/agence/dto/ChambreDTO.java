@@ -1,7 +1,5 @@
 package org.tp1.agence.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 public class ChambreDTO {
     private int id;
     private String nom;
@@ -10,7 +8,6 @@ public class ChambreDTO {
     private String hotelNom;
     private String hotelAdresse;
 
-    @JsonProperty("image")  // Les hôtels utilisent "image", on mappe vers "imageUrl"
     private String imageUrl;
 
     private String agenceNom;  // Nom de l'agence qui propose cette chambre

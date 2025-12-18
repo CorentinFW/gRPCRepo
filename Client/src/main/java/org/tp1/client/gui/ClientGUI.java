@@ -424,12 +424,25 @@ public class ClientGUI {
             protected ImageIcon doInBackground() throws Exception {
                 try {
                     // Télécharger l'image depuis l'URL
-                    java.net.URL url = new java.net.URL(chambre.getImageUrl());
+                    String imageUrl = chambre.getImageUrl();
+                    log("📥 Tentative de téléchargement: " + imageUrl);
+
+                    java.net.URL url = new java.net.URL(imageUrl);
+                    log("✓ URL parsée avec succès");
+                    log("  Protocol: " + url.getProtocol());
+                    log("  Host: " + url.getHost());
+                    log("  Port: " + url.getPort());
+                    log("  Path: " + url.getPath());
+
                     java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(url);
+                    log("✓ Image téléchargée");
 
                     if (image == null) {
+                        log("✗ Image est null après téléchargement");
                         return null;
                     }
+
+                    log("✓ Image valide: " + image.getWidth() + "x" + image.getHeight());
 
                     // Redimensionner l'image (max 800x600 pour l'affichage)
                     int maxWidth = 800;
@@ -457,6 +470,12 @@ public class ClientGUI {
                     return new ImageIcon(image);
 
                 } catch (Exception e) {
+                    log("✗ Erreur lors du chargement: " + e.getClass().getName());
+                    log("  Message: " + e.getMessage());
+                    if (e.getCause() != null) {
+                        log("  Cause: " + e.getCause().getMessage());
+                    }
+                    e.printStackTrace();
                     throw e;
                 }
             }

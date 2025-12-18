@@ -1,7 +1,5 @@
 package org.tp1.hotellerie.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import javax.persistence.*;
 
 @Entity
@@ -29,7 +27,6 @@ public class Chambre {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hotel_id", nullable = false)
-    @JsonIgnore
     private Hotel hotel;
 
     // Constructeur par défaut requis par JPA

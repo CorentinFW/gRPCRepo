@@ -1,0 +1,893 @@
+#import "@preview/modern-report-umfds:0.1.2": umfds
+#import "@preview/codly:1.2.0": *
+#show: codly-init
+#codly(stroke: .5pt + black)
+#codly(number-format: none)
+#import "@preview/codly-languages:0.1.6": *
+#codly(languages: codly-languages)
+#show: umfds.with(
+  title: [Un dérivé de Trivago en SOAP],
+  authors: (
+    "Corentin FAY",
+  ),
+  department: [Departement Informatique],
+  date: datetime.today().display("[day] [month repr:long] [year]"),
+  lang: "fr",
+  abstract:[Ce Projet utilise SOAP et spring boot pour mettre en place un système de réservation de chambre d'un hôtel en passant par une agence.\
+
+  Voici le github : #link("https://github.com/CorentinFW/RestRepo.git")[#underline[#text(
+  fill: color.rgb(0,0,255),
+  [Code du projet])]]]
+)
+#pagebreak()
+#set outline.entry(fill: line(length: 100%, stroke: (thickness: 1pt, dash: "loosely-dotted")))
+#outline(
+  indent: auto,
+  depth: 4
+)
+#pagebreak()
+= PRÉSENTATION DU PROJET
+
+== Contexte et Objectifs
+
+
+Ce projet implémente un système de réservation d'hôtels multi-agences basé sur
+une architecture REST moderne et distribuée.
+
+Le système permet à des clients de :
+  • Rechercher des chambres d'hôtel selon plusieurs critères
+  • Visualiser les offres agrégées de plusieurs agences
+  • Réserver une chambre en temps réel
+  • Consulter les réservations existantes
+  • Voir les images des chambres
+
+Architecture distribuée avec trois acteurs principaux :
+
+  CLIENT (Interface graphique)
+     ↓ ↓
+  AGENCES (Agrégateurs)
+     ↓ ↓ ↓
+  HÔTELS (Fournisseurs)
+
+Chaque composant est autonome et communique via des APIs REST standardisées.
+
+
+== Technologies Utilisées
+
+
+SPRING BOOT (Framework principal)
+
+Spring Boot est le cœur du projet, fournissant :
+  • Configuration automatique des composants
+  • Serveur Tomcat embarqué pour les APIs REST
+  • Gestion des dépendances simplifiée
+  • Profiles pour gérer plusieurs instances (paris, lyon, montpellier)
+
+Avantages :
+  ✓ Démarrage rapide sans configuration XML complexe
+  ✓ Convention over configuration
+  ✓ Écosystème riche (Web, Data, etc.)
+  ✓ Production-ready avec Actuator
+
+Utilisation dans le projet :
+  - \@SpringBootApplication initialise automatiquement l'application
+  - \@RestController expose les endpoints HTTP
+  - \@Value injecte les configurations depuis les fichiers .properties
+  - Profiles Spring permettent de démarrer plusieurs instances avec des configs différentes
+
+
+REST (Architecture de communication)
+
+REST (Representational State Transfer) remplace SOAP pour :
+  • Simplicité : JSON au lieu de XML
+  • Standardisation : méthodes HTTP (GET, POST, PUT, DELETE)
+  • Performance : messages plus légers
+  • Compatibilité : universel (navigateurs, mobiles, etc.)
+
+Principes appliqués :
+  - Ressources identifiées par URLs (exemple: /api/hotel/chambres)
+  - Méthodes HTTP sémantiques (POST pour créer, GET pour lire)
+  - Stateless : chaque requête est indépendante
+  - Format JSON pour les données
+
+Une requête typique contient l'adresse, les dates et la fourchette de prix en JSON.
+
+
+H2 DATABASE (Base de données embarquée)
+
+H2 est une base de données Java légère et performante :
+  • Embarquée : pas de serveur séparé à installer
+  • Persistante : mode FILE pour sauvegarder sur disque
+  • Compatible SQL : standard JDBC/JPA
+  • Console web intégrée pour le débogage
+
+Configuration : l'URL de datasource pointe vers un fichier local et Hibernate
+met à jour automatiquement le schéma de la base.
+
+Avantages :
+  ✓ Installation zero (inclus dans le JAR)
+  ✓ Idéal pour le développement et les petits systèmes
+  ✓ Migration facile vers PostgreSQL/MySQL si besoin
+  ✓ Performances excellentes
+
+
+SPRING DATA JPA (ORM)
+
+JPA (Java Persistence API) avec Hibernate gère la persistance :
+  • Mapping objet-relationnel automatique
+  • Repositories pour abstraire les requêtes SQL
+  • Transactions gérées automatiquement
+  • Requêtes JPQL type-safe
+
+Utilisation : Les annotations \@Entity sur les modèles définissent les tables.
+Les interfaces Repository héritent de JpaRepository et Spring génère automatiquement
+les requêtes SQL. Par exemple, une méthode findByHotel() génère automatiquement
+la requête SELECT correspondante.
+
+
+RESTTEMPLATE (Client REST)
+
+RestTemplate est le client HTTP de Spring pour appeler les APIs :
+  • Configuration simple avec les URLs des services
+  • Conversion automatique JSON ↔ Java (Jackson)
+  • Gestion des erreurs HTTP
+  • Support des timeouts
+
+Utilisation : RestTemplate envoie les requêtes HTTP, sérialise automatiquement
+les objets Java en JSON, puis désérialise la réponse JSON en objets Java.
+Tout est transparent pour le développeur.
+
+
+JAVAX SWING (Interface graphique)
+
+Swing est la bibliothèque Java pour créer des interfaces graphiques :
+  • Composants riches (JTable, JButton, JTextField, etc.)
+  • Event-driven programming (listeners)
+  • Cross-platform (même interface sur Windows/Linux/Mac)
+  • Intégration native avec Java
+
+Composants utilisés :
+  - JFrame : fenêtre principale
+  - JTable : tableau des résultats
+  - JPanel : organisation des zones
+  - JButton : actions (rechercher, réserver)
+  - JDialog : popups (images, confirmations)
+  - JTextArea : console de logs
+
+Architecture Swing :
+  - Event Dispatch Thread (EDT) pour l'UI
+  - SwingUtilities.invokeLater() pour les updates thread-safe
+  - ActionListener pour réagir aux clics
+  - MouseListener pour les interactions avancées
+
+
+MAVEN (Gestion de projet)
+
+Maven gère la construction du projet :
+  • Dépendances déclarées dans pom.xml
+  • Compilation : mvn clean install
+  • Packaging : création des JARs
+  • Cycles de vie standardisés
+
+Structure : Chaque module (Hotellerie, Agence, Client) a son propre pom.xml
+déclarant ses dépendances. Maven télécharge automatiquement toutes les
+bibliothèques nécessaires et gère les versions.
+
+
+
+= MODULE HÔTEL
+
+== Rôle et Responsabilités
+
+L'hôtel est le fournisseur de base du système. Il :
+  • Gère son inventaire de chambres
+  • Vérifie la disponibilité en temps réel
+  • Crée et stocke les réservations
+  • Sert les images des chambres
+  • Maintient sa propre base de données
+
+Chaque hôtel est une application Spring Boot indépendante avec :
+  - Son propre port (8082, 8083, 8084)
+  - Sa propre base H2
+  - Ses propres chambres et tarifs
+  - Son profil Spring (paris, lyon, montpellier)
+
+
+== Implémentation REST
+
+ENDPOINTS EXPOSÉS
+
+L'hôtel expose 5 endpoints REST principaux :
+
+1. GET /api/hotel/info
+   Retourne les informations de l'hôtel (nom, adresse, étoiles)
+
+2. POST /api/hotel/chambres/rechercher
+   Recherche les chambres disponibles selon les critères reçus (dates, prix, lits)
+
+3. POST /api/hotel/reservations/creer
+   Crée une nouvelle réservation et retourne un ID de confirmation
+
+4. GET /api/hotel/chambres/reservees
+   Liste toutes les chambres actuellement réservées avec les infos clients
+
+5. GET /api/hotel/images/{imageId}
+   Télécharge l'image d'une chambre au format binaire (JPEG/PNG)
+
+
+LOGIQUE MÉTIER CLÉS
+
+Recherche de chambres disponibles :
+  1. Filtrer les chambres par critères statiques (prix, lits)
+  2. Pour chaque chambre, interroger la BDD pour vérifier l'absence de réservation
+  3. Algorithme de détection de conflit :
+     Une réservation existe si :
+     (dateArriveeResa <= dateDepart) ET (dateDepartResa >= dateArrivee)
+  4. Retourner uniquement les chambres sans conflit
+
+Création de réservation :
+  1. Vérifier l'existence de la chambre
+  2. Vérifier l'absence de conflit (requête JPA)
+  3. Créer l'entité Reservation
+  4. Sauvegarder dans H2 (commit automatique)
+  5. Retourner l'ID de réservation
+
+Gestion des images :
+  1. Mapping : chaque hôtel a une image (Hotelle1.png, Hotelle2.png, etc.)
+  2. Toutes les chambres d'un hôtel partagent la même image
+  3. Le contrôleur lit le fichier depuis Hotellerie/Image/
+  4. Retourne en byte[] avec Content-Type: image/png
+
+
+== Configuration Multi-Instances
+
+Chaque hôtel utilise un profil Spring différent pour personnaliser sa configuration.
+
+Exemple pour Paris : port 8082, base de données paris-db, nom "Hôtel de Paris"
+Exemple pour Lyon : port 8083, base de données lyon-db, nom "Hôtel de Lyon"
+
+Le démarrage se fait avec l'option --spring.profiles.active qui charge le bon
+fichier de configuration. Cela permet de lancer plusieurs instances du même
+code avec des paramètres différents (port, BDD, données métier).
+
+
+== Persistance des Données
+
+INITIALISATION AU DÉMARRAGE
+
+Le HotelService s'exécute au démarrage (\@PostConstruct) :
+  1. Vérifier si l'hôtel existe dans H2
+  2. Si non, créer l'entité Hotel
+  3. Pour chaque chambre par défaut :
+     a. Vérifier si elle existe
+     b. Si non, créer l'entité Chambre
+  4. Les réservations existantes sont chargées automatiquement par JPA
+
+MODÈLE DE DONNÉES
+
+Trois entités principales avec annotations JPA :
+
+• Hotel : contient id, nom, adresse, étoiles et une liste de chambres
+  Relation : un hôtel possède plusieurs chambres
+
+• Chambre : contient id, numéro, prix par nuit, nombre de lits, URL image
+  Relations : appartient à un hôtel, peut avoir plusieurs réservations
+
+• Reservation : contient id, dates d'arrivée/départ, nom et prénom du client
+  Relation : associée à une chambre
+
+Les annotations JPA définissent les relations :
+  - \@OneToMany : un vers plusieurs (hôtel → chambres)
+  - \@ManyToOne : plusieurs vers un (chambres → hôtel)
+  - Cascade : suppression en cascade si nécessaire
+  - FetchType : LAZY pour optimiser les requêtes
+
+
+
+= MODULE AGENCE
+
+== Rôle d'Agrégateur
+
+
+L'agence est un intermédiaire intelligent qui :
+  • Se connecte à plusieurs hôtels simultanément
+  • Agrège les offres dans une réponse unifiée
+  • Applique son coefficient tarifaire sur chaque chambre
+  • Route les réservations vers le bon hôtel
+  • Offre une API unique au client
+
+Architecture multi-agences :
+  Le système supporte plusieurs agences en parallèle :
+
+  AGENCE 1 "Paris Voyages" (port 8081, coef 1.15)
+    ├─> Hôtel Paris (8082)
+    └─> Hôtel Lyon (8083)
+
+  AGENCE 2 "Sud Réservations" (port 8085, coef 1.20)
+    ├─> Hôtel Lyon (8083)    [hôtel partagé]
+    └─> Hôtel Montpellier (8084)
+
+Avantages :
+  ✓ Le client voit toutes les offres via une seule recherche
+  ✓ Les hôtels partagés apparaissent avec différents prix
+  ✓ Chaque agence a sa propre politique tarifaire
+  ✓ Résilience : une agence peut tomber sans impacter les autres
+
+
+== Implémentation REST
+
+ENDPOINTS EXPOSÉS
+
+L'agence expose 4 endpoints REST :
+
+1. GET /api/agence/ping
+   Test de connexion pour vérifier que l'agence est opérationnelle
+
+2. POST /api/agence/chambres/rechercher
+   Recherche agrégée : interroge tous les hôtels et fusionne les résultats
+
+3. POST /api/agence/reserver
+   Délègue la réservation à l'hôtel concerné en utilisant son URL
+
+4. GET /api/agence/chambres/reservees
+   Récupère toutes les réservations via cette agence depuis tous ses hôtels
+
+
+ALGORITHME D'AGRÉGATION
+
+Méthode rechercherChambres() du AgenceService :
+
+  1. Créer une liste vide pour les résultats
+  2. Pour chaque hôtel configuré :
+     a. Appeler son API REST en parallèle (threads)
+     b. Récupérer List<ChambreDTO>
+     c. Pour chaque chambre :
+        - Multiplier le prix par le coefficient de l'agence
+        - Ajouter le champ "agenceNom"
+     d. Ajouter à la liste de résultats
+  3. Attendre que tous les threads se terminent
+  4. Retourner la liste fusionnée
+
+Exemple :
+  Hôtel Lyon retourne une chambre à 100€
+  Agence "Paris Voyages" (coef 1.15) : 100€ × 1.15 = 115€
+  Agence "Sud Réservations" (coef 1.20) : 100€ × 1.20 = 120€
+
+  Le client voit deux lignes pour la même chambre physique,
+  avec des prix différents selon l'agence.
+
+
+CLIENT REST : MultiHotelRestClient
+
+Cette classe gère les communications avec les hôtels. Elle utilise RestTemplate
+pour appeler les APIs REST de chaque hôtel configuré.
+
+Les URLs des hôtels sont injectées depuis les fichiers de configuration via
+\@Value. La méthode de recherche envoie la requête à chaque hôtel et retourne
+la liste fusionnée des chambres.
+
+Gestion des erreurs robuste :
+  - Timeout : si un hôtel ne répond pas en 5s, il est ignoré
+  - Erreur HTTP : loggée et le système continue avec les autres hôtels
+  - Pas de propagation : une erreur sur un hôtel n'impacte pas les autres
+
+
+== Configuration
+
+Chaque agence a son propre fichier de configuration avec :
+  - Port unique (8081 pour Paris Voyages, 8085 pour Sud Réservations)
+  - Nom de l'agence
+  - Coefficient tarifaire (1.15 ou 1.20)
+  - URLs des hôtels connectés
+
+Le coefficient est injecté dans le code via \@Value et appliqué automatiquement
+sur chaque prix de chambre récupéré des hôtels.
+
+
+#pagebreak()
+= MODULE CLIENT
+
+== Interface Graphique Swing
+
+Le client est une application desktop avec interface graphique complète.
+
+=== ARCHITECTURE SWING
+
+ClientGUI hérite de JFrame et organise l'interface en zones
+
+Composants principaux :
+
+1. JTable pour les résultats :
+   - DefaultTableModel pour gérer les données
+   - Colonnes : N°, Hôtel, Ville, Prix, Lits, Agence, Image
+   - Tri par colonne (TableRowSorter)
+   - Sélection de ligne pour réserver
+
+2. JTextField pour les critères :
+   - Ville, dates, prix min/max, nombre de lits
+   - Validation des entrées
+   - Bouton "Rechercher" avec ActionListener
+
+3. JTextArea pour la console :
+   - Logs horodatés [HH:mm:ss]
+   - Auto-scroll vers le bas
+   - Police monospace
+   - Couleurs avec HTML
+
+4. JLabel pour le statut :
+   - Indicateur de connexion aux agences
+   - Mise à jour en temps réel
+
+
+=== GESTION DES ÉVÉNEMENTS
+
+Les boutons utilisent des ActionListener pour réagir aux clics utilisateur.
+Lors d'une recherche, les critères sont récupérés des champs de saisie, puis
+un thread séparé appelle le service REST pour éviter de bloquer l'interface.
+
+Le double-clic sur une ligne du tableau déclenche la réservation de la chambre
+sélectionnée via un MouseListener.
+
+Thread-safety cruciale :
+  - Appels REST dans des threads séparés (évite de geler l'UI)
+  - Mises à jour de l'interface toujours dans l'Event Dispatch Thread (EDT)
+  - Utilisation de SwingUtilities.invokeLater() pour la synchronisation
+  - Synchronisation sur les données partagées entre threads
+
+
+=== AFFICHAGE DES IMAGES
+
+Chaque chambre a une icône 🖼️ cliquable dans le tableau :
+
+1. Détection du clic sur la colonne "Image"
+2. Récupération de l'URL de l'image depuis le DTO
+3. Téléchargement via RestTemplate :
+   byte[] imageBytes = restTemplate.getForObject(imageUrl, byte[].class);
+4. Conversion en ImageIcon :
+   ImageIcon icon = new ImageIcon(imageBytes);
+5. Affichage dans une JDialog modale :
+   JDialog dialog = new JDialog(this, "Chambre " + numero, true);
+   dialog.add(new JLabel(icon));
+   dialog.pack();
+   dialog.setVisible(true);
+
+Optimisation : cache des images déjà téléchargées pour éviter les requêtes répétées.
+
+
+== Client REST Multi-Agences
+
+MultiAgenceRestClient gère les connexions à plusieurs agences simultanément.
+
+Les URLs des agences sont injectées depuis la configuration. Au démarrage,
+toutes les URLs sont collectées dans une liste.
+
+La méthode de recherche interroge chaque agence séquentiellement, accumule
+tous les résultats et les retourne fusionnés. Si une agence ne répond pas,
+elle est loggée comme indisponible mais les autres continuent à fonctionner.
+
+Fonctionnalités :
+  • Fusion automatique des résultats de toutes les agences
+  • Gestion des erreurs par agence (isolation des pannes)
+  • Test de connexion au démarrage
+  • Affichage du statut de connexion dans l'interface
+
+
+=== CONSOLE DE LOGS
+
+Format des logs : timestamp entre crochets, icône, message
+
+Icônes utilisées :
+  ✓  Succès       🔍 Recherche
+  ✗  Erreur       📝 Réservation
+  ⚠  Avertissement  ℹ️  Information
+
+La méthode log() formate les messages avec horodatage et les ajoute à la zone
+de texte. L'auto-scroll garantit que le dernier log est toujours visible.
+
+Exemples typiques :
+  - Lancement d'une recherche avec critères
+  - Nombre de chambres trouvées
+  - Confirmation de réservation avec ID
+  - Erreurs détaillées en cas de problème
+
+
+
+= BASE DE DONNÉES H2
+
+== Architecture de Persistance
+
+=== CHOIX DE H2
+
+H2 a été choisi pour :
+  ✓ Embarquabilité : pas de serveur séparé
+  ✓ Légèreté : 2 MB, parfait pour ce type de projet
+  ✓ Persistance : mode FILE pour sauvegarder sur disque
+  ✓ Compatibilité : SQL standard, migration facile vers PostgreSQL/MySQL
+  ✓ Performance : excellent pour des volumes moyens
+
+Configuration : Le mode FILE sauvegarde les données dans des fichiers locaux.
+L'option ddl-auto=update fait qu'Hibernate crée automatiquement les tables au
+premier démarrage et les met à jour si le modèle change, sans jamais supprimer
+de données.
+
+
+=== SCHÉMA DE DONNÉES
+
+TABLE HOTEL
+  id (PK)       BIGINT          Identifiant unique
+  nom           VARCHAR(255)     Nom de l'hôtel
+  adresse       VARCHAR(255)     Ville
+  etoiles       INT              Nombre d'étoiles (1-5)
+
+TABLE CHAMBRE
+  id (PK)       BIGINT          Identifiant unique
+  numero        INT              Numéro de chambre
+  prix_nuit     DOUBLE           Prix par nuit
+  nombre_lits   INT              Nombre de lits
+  image_url     VARCHAR(500)     URL de l'image
+  hotel_id (FK) BIGINT           Référence vers HOTEL
+
+TABLE RESERVATION
+  id (PK)       BIGINT          Identifiant unique
+  date_arrivee  DATE             Date d'arrivée
+  date_depart   DATE             Date de départ
+  nom_client    VARCHAR(100)     Nom du client
+  prenom_client VARCHAR(100)     Prénom du client
+  chambre_id (FK) BIGINT         Référence vers CHAMBRE
+
+Relations :
+  HOTEL 1 ──< N CHAMBRE
+  CHAMBRE 1 ──< N RESERVATION
+
+Contraintes :
+  - PRIMARY KEY sur tous les id
+  - FOREIGN KEY avec ON DELETE CASCADE
+  - INDEX sur date_arrivee et date_depart pour optimiser les recherches
+
+
+== Spring Data JPA
+
+=== REPOSITORIES
+
+Spring Data JPA génère automatiquement les implémentations des repositories.
+
+L'interface HotelRepository déclare une méthode findByNom() et Spring génère
+automatiquement la requête SQL correspondante (SELECT WHERE nom = ?).
+
+L'interface ChambreRepository hérite de méthodes standards (save, findById,
+findAll, delete, count) plus des méthodes personnalisées comme findByHotel().
+
+Méthodes héritées automatiquement :
+  - save() pour INSERT ou UPDATE
+  - findById() pour SELECT par clé primaire
+  - findAll() pour récupérer tout
+  - delete() pour supprimer
+  - count() pour compter
+
+
+=== REQUÊTES PERSONNALISÉES
+
+Pour les requêtes complexes, on utilise \@Query avec JPQL (Java Persistence Query Language).
+
+Exemple : trouver les chambres disponibles nécessite une requête qui récupère
+les chambres d'un hôtel en excluant celles ayant une réservation qui chevauche
+les dates demandées.
+
+L'algorithme de chevauchement vérifie si une réservation existe avec :
+  date d'arrivée réservation ≤ date de départ demandée
+  ET date de départ réservation ≥ date d'arrivée demandée
+
+Hibernate traduit automatiquement le JPQL en SQL natif pour H2.
+
+
+=== GESTION DES TRANSACTIONS
+
+L'annotation \@Transactional sur les méthodes de service active la gestion
+automatique des transactions.
+
+Pour les lectures seules, on utilise readOnly=true pour permettre des
+optimisations. Pour les écritures (réservations), on peut spécifier le niveau
+d'isolation pour éviter les conflits en cas d'accès concurrents.
+
+Avantages :
+  Commit/rollback automatique
+  Gestion des deadlocks
+  Isolation pour éviter les conflits concurrents
+  Propagation pour gérer les transactions imbriquées
+
+
+=== INITIALISATION DES DONNÉES
+
+Au démarrage, le HotelService s'exécute automatiquement grâce à \@PostConstruct.
+
+Processus :
+  1. Vérifier si l'hôtel existe dans la base, sinon le créer
+  2. Pour chaque chambre par défaut (101 à 105) :
+     - Vérifier si elle existe déjà
+     - Si non, créer la chambre avec ses attributs (prix, lits, URL image)
+  3. Les réservations existantes sont automatiquement chargées par JPA
+
+Ce système garantit que chaque hôtel a toujours ses données de base, même au
+premier démarrage, tout en préservant les réservations existantes.
+
+
+
+= SCRIPTS DE DÉMARRAGE
+
+== Scripts Principaux
+
+
+Quatre scripts essentiels pour l'exploitation :
+
+1. rest-all-restart.sh
+   → Redémarre tout le système (BDD + Agences + Hôtels + Client)
+   Usage : ./rest-all-restart.sh
+   Cas d'usage : premier démarrage, reset complet
+
+2. rest-restart.sh
+   → Redémarre Agences + Hôtels (conserve la BDD)
+   Usage : ./rest-restart.sh
+   Cas d'usage : modifications du code backend
+
+3. rest-client.sh
+   → Lance uniquement l'interface graphique
+   Usage : ./rest-client.sh
+   Cas d'usage : redémarrer le client sans toucher au backend
+
+4. arreter-services.sh
+   → Arrête proprement tous les services
+   Usage : ./arreter-services.sh
+   Cas d'usage : arrêt du système
+
+Architecture des scripts :
+  rest-all-restart.sh
+    ├─> Supprime les BDD (rm -rf Hotellerie/data/\*.mv.db)
+    ├─> Lance start-systeme-maven.sh
+    └─> Lance rest-client.sh
+
+  rest-restart.sh
+    ├─> Conserve les BDD
+    ├─> Lance start-systeme-maven.sh
+    └─> Lance rest-client.sh
+
+  start-systeme-maven.sh
+    ├─> Compile les 3 modules (mvn clean install)
+    ├─> Lance les 3 hôtels (mvn spring-boot:run avec profil)
+    └─> Lance les 2 agences
+
+
+== Démarrage Détaillé
+
+
+WORKFLOW DE start-systeme-maven.sh
+
+Le script compile d'abord les trois modules (Hotellerie, Agence, Client) avec
+Maven en sautant les tests.
+
+Ensuite, il démarre les trois hôtels en arrière-plan avec leurs profils
+respectifs (paris, lyon, montpellier).
+
+Après 20 secondes d'attente (temps pour les hôtels de démarrer complètement),
+il lance les deux agences avec leurs profils (agence1, agence2).
+
+Tous les logs sont redirigés vers le dossier logs/ avec un fichier par service
+(hotel-paris.log, agence1.log, etc.).
+
+Vérification : on peut tester avec curl sur les endpoints /api/hotel/info et
+/api/agence/ping pour confirmer que tout fonctionne.
+
+
+WORKFLOW DE rest-client.sh
+
+Le script compile le module Client, désactive le mode headless Java (pour
+permettre l'affichage graphique), puis lance l'application avec Maven.
+
+L'interface Swing se lance automatiquement et les logs sont sauvegardés dans
+logs/client-gui.log.
+
+
+
+= ÉVOLUTIONS FUTURES
+
+
+== Sécurité
+
+• AUTHENTIFICATION JWT
+  - Token d'accès pour chaque client
+  - Refresh token pour renouveler les sessions
+  - Stockage sécurisé des tokens
+  - Expiration automatique après inactivité
+
+• HTTPS
+  - Certificats SSL pour chiffrer les communications
+  - Configuration avec Let's Encrypt
+  - Redirection automatique HTTP → HTTPS
+  - HSTS (HTTP Strict Transport Security)
+
+• AUTORISATION
+  - Rôles : CLIENT, AGENCE, HOTEL, ADMIN
+  - Permissions granulaires par endpoint
+  - Spring Security pour gérer les accès
+  - OAuth2 pour l'intégration avec des fournisseurs externes
+
+• PROTECTION DES DONNÉES
+  - Hachage des mots de passe avec BCrypt
+  - Chiffrement des données sensibles en BDD
+  - Conformité RGPD (droit à l'oubli, export des données)
+  - Rate limiting pour éviter les abus
+
+
+== Infrastructure
+
+
+• CONTAINERISATION
+  - Dockerfile pour chaque module
+  - Docker Compose pour orchestrer localement
+  - Images optimisées (multi-stage builds)
+  - Volumes pour la persistance des BDD
+
+• CI/CD
+  - Pipeline Jenkins ou GitLab CI
+  - Tests automatiques à chaque commit
+  - Déploiement automatique en staging/production
+  - Rollback automatique en cas d'échec
+
+• BASE DE DONNÉES EXTERNE
+  - Migration vers PostgreSQL pour la production
+  - Réplication master-slave pour la haute disponibilité
+  - Backups automatiques quotidiens
+  - Restauration rapide en cas de panne
+
+
+== Tests
+
+
+• TESTS UNITAIRES
+  - JUnit 5 pour les services
+  - Mockito pour mocker les dépendances
+  - Couverture de code > 80%
+  - Tests paramétrés pour différents scénarios
+
+• TESTS D'INTÉGRATION
+  - \@SpringBootTest pour tester l'application complète
+  - MockMvc pour tester les controllers REST
+  - TestContainers pour H2/PostgreSQL en isolation
+  - Fixtures pour les données de test
+
+• TESTS DE CHARGE
+  - JMeter pour simuler 1000+ utilisateurs simultanés
+  - Gatling pour des scénarios réalistes
+  - Analyse des temps de réponse sous charge
+  - Identification des goulots d'étranglement
+
+• TESTS END-TO-END
+  - Selenium pour automatiser l'UI Swing
+  - Scénarios complets (recherche → réservation → confirmation)
+  - Tests de non-régression
+  - Tests cross-platform (Windows, Linux, Mac)
+
+
+
+= CONCLUSION
+
+== Bilan Technique
+
+
+Ce projet démontre une maîtrise complète de l'écosystème Spring Boot et
+de l'architecture REST moderne.
+
+=== TECHNOLOGIES MAÎTRISÉES
+
+Spring Boot : framework principal, configuration, profiles
+REST : architecture, endpoints, sérialisation JSON
+Spring Data JPA : ORM, repositories, transactions
+H2 Database : persistance, SQL, migrations
+RestTemplate : client REST, gestion d'erreurs
+Swing : interface graphique, événements, threading
+Maven : build, dépendances, cycles de vie
+Shell scripting : automatisation, déploiement
+
+=== CONCEPTS APPLIQUÉS
+
+Architecture microservices : modules indépendants
+Agrégation de données : fusion multi-sources
+Persistance transactionnelle : intégrité des données
+Multi-tenancy : plusieurs instances avec configurations différentes
+Thread-safety : EDT Swing, appels asynchrones
+Gestion d'erreurs : fallback, retry, logs
+Séparation des responsabilités : contrôleurs, services, repositories
+
+
+== Points Forts du Projet
+
+
+• ARCHITECTURE MODULAIRE
+  Chaque composant (Hôtel, Agence, Client) est indépendant et peut évoluer
+  séparément. Ajout d'un nouvel hôtel = nouvelle instance avec configuration.
+
+• PERSISTANCE FIABLE
+  Les réservations survivent aux redémarrages grâce à H2 en mode FILE.
+  Pas de perte de données, même en cas de crash.
+
+• EXPÉRIENCE UTILISATEUR
+  Interface graphique moderne avec console de logs, visualisation d'images,
+  tableau interactif. Retour immédiat sur chaque action.
+
+• DÉPLOIEMENT SIMPLIFIÉ
+  Scripts automatisés pour démarrer/arrêter le système complet en une commande.
+  Pas de configuration manuelle complexe.
+
+• ÉVOLUTIVITÉ
+  L'architecture REST permet facilement d'ajouter de nouveaux services
+  (paiement, notifications, etc.) sans modifier l'existant.
+
+
+
+== Utilisation
+
+DÉMARRAGE RAPIDE
+
+1. Premier lancement (BDD vide) :
+   ./rest-all-restart.sh
+
+2. Relancement avec données existantes :
+   ./rest-restart.sh
+
+3. Lancement du client seul :
+   ./rest-client.sh
+
+4. Arrêt complet :
+   ./arreter-services.sh
+
+Le système est opérationnel en environ 30 secondes.
+
+
+WORKFLOW UTILISATEUR TYPE
+
+1. Lancement de l'interface graphique
+2. Vérification de la connexion (barre de statut)
+3. Saisie des critères de recherche
+4. Consultation des résultats (toutes agences confondues)
+5. Visualisation des images des chambres
+6. Réservation par double-clic
+7. Confirmation avec numéro de réservation
+8. Consultation des réservations
+
+
+== Synthèse
+
+
+Le projet implémente un système complet et fonctionnel de réservation
+hôtelière avec une architecture REST moderne et distribuée.
+
+La migration de SOAP vers REST a été réussie, apportant :
+  • Simplicité des communications (JSON vs XML)
+  • Standardisation (méthodes HTTP)
+  • Performance (messages plus légers)
+  • Compatibilité universelle
+
+L'ajout de la persistance H2 garantit la fiabilité des données et permet
+une utilisation en conditions réelles.
+
+L'interface graphique Swing offre une expérience utilisateur complète et
+intuitive, avec retour visuel sur chaque opération.
+
+Le système est prêt pour une utilisation en production, avec des évolutions
+possibles clairement identifiées (sécurité, performance, fonctionnalités).
+
+= Diagramme et Séquence
+
+== Diagramme du projet en générale
+#figure(
+  image("Image/REST_Gen.png"),
+)
+== Diagramme Séquentielle sur la recherche
+
+#figure(
+  image("Image/REST_Recherche.png"),
+)
+
+== Diagramme Séquentielle sur la réservation
+#figure(
+  image("Image/REST_Reserv.png"),
+)

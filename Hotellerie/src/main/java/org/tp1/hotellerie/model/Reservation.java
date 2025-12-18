@@ -1,7 +1,5 @@
 package org.tp1.hotellerie.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import javax.persistence.*;
 import java.util.Date;
 
@@ -26,7 +24,6 @@ public class Reservation {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hotel_id", nullable = false)
-    @JsonIgnore
     private Hotel hotel;
 
     @Temporal(TemporalType.DATE)

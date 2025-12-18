@@ -31,17 +31,17 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "🏨 Lancement de l'Hôtel Paris (REST:8082, gRPC:9092)..."
+echo "🏨 Lancement de l'Hôtel Paris (HTTP:8092, gRPC:9092)..."
 nohup java -jar target/Hotellerie-0.0.1-SNAPSHOT.jar --spring.profiles.active=paris > ../logs/hotel-paris.log 2>&1 &
 echo $! > ../logs/hotel-paris.pid
 sleep 3
 
-echo "🏨 Lancement de l'Hôtel Lyon (REST:8083, gRPC:9093)..."
+echo "🏨 Lancement de l'Hôtel Lyon (HTTP:8093, gRPC:9093)..."
 nohup java -jar target/Hotellerie-0.0.1-SNAPSHOT.jar --spring.profiles.active=lyon > ../logs/hotel-lyon.log 2>&1 &
 echo $! > ../logs/hotel-lyon.pid
 sleep 3
 
-echo "🏨 Lancement de l'Hôtel Montpellier (REST:8084, gRPC:9094)..."
+echo "🏨 Lancement de l'Hôtel Montpellier (HTTP:8094, gRPC:9094)..."
 nohup java -jar target/Hotellerie-0.0.1-SNAPSHOT.jar --spring.profiles.active=montpellier > ../logs/hotel-montpellier.log 2>&1 &
 echo $! > ../logs/hotel-montpellier.pid
 sleep 3
@@ -58,12 +58,12 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "🏢 Lancement de l'Agence 1 (REST:8081, gRPC:9091)..."
+echo "🏢 Lancement de l'Agence 1 (HTTP:8091, gRPC:9091)..."
 nohup java -jar target/Agence-0.0.1-SNAPSHOT.jar --spring.profiles.active=agence1 > ../logs/agence1.log 2>&1 &
 echo $! > ../logs/agence1.pid
 sleep 3
 
-echo "🏢 Lancement de l'Agence 2 (REST:8085, gRPC:9095)..."
+echo "🏢 Lancement de l'Agence 2 (HTTP:8095, gRPC:9095)..."
 nohup java -jar target/Agence-0.0.1-SNAPSHOT.jar --spring.profiles.active=agence2 > ../logs/agence2.log 2>&1 &
 echo $! > ../logs/agence2.pid
 sleep 3
@@ -76,13 +76,13 @@ echo "  ✅ TOUS LES SERVICES gRPC SONT DÉMARRÉS"
 echo "═══════════════════════════════════════════════════════"
 echo ""
 echo "📊 Hôtels gRPC:"
-echo "   - Paris:       localhost:9092 (REST: 8082)"
-echo "   - Lyon:        localhost:9093 (REST: 8083)"
-echo "   - Montpellier: localhost:9094 (REST: 8084)"
+echo "   - Paris:       localhost:9092 (HTTP Images: 8092)"
+echo "   - Lyon:        localhost:9093 (HTTP Images: 8093)"
+echo "   - Montpellier: localhost:9094 (HTTP Images: 8094)"
 echo ""
 echo "📊 Agences gRPC:"
-echo "   - Agence 1:    localhost:9091 (REST: 8081)"
-echo "   - Agence 2:    localhost:9095 (REST: 8085)"
+echo "   - Agence 1:    localhost:9091 (HTTP: 8091)"
+echo "   - Agence 2:    localhost:9095 (HTTP: 8095)"
 echo ""
 echo "💡 Pour lancer l'interface graphique:"
 echo "   ./grpc-client.sh"

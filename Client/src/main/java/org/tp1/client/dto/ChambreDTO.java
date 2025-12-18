@@ -1,7 +1,5 @@
 package org.tp1.client.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 /**
  * DTO pour les informations d'une chambre (côté client)
  */
@@ -13,7 +11,6 @@ public class ChambreDTO {
     private String hotelNom;
     private String hotelAdresse;
 
-    @JsonProperty("image")  // Le JSON utilise "image" au lieu de "imageUrl"
     private String imageUrl;
 
     private String agenceNom;  // Nom de l'agence qui propose cette chambre
